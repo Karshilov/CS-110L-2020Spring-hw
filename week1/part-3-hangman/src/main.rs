@@ -35,6 +35,39 @@ fn main() {
     let secret_word_chars: Vec<char> = secret_word.chars().collect();
     // Uncomment for debugging:
     // println!("random word: {}", secret_word);
-
-    // Your code here! :)
+    let mut mut_secret_word_chars: Vec<char> = secret_word.chars().collect();
+    let mut guess_result: Vec<char> = secret_word.as_str().chars().collect::<Vec<char>>().iter().map(|_| '-').collect();
+    let mut remain_chances = NUM_INCORRECT_GUESSES;
+    let mut guess = String::new();
+    let mut current = String::new();
+    loop {
+        println!("The word so far is {}", guess_result.iter().collect::<String>());
+        println!("You have {} guesses left", remain_chances);
+        println!("You have guessed the following letters: {}", current);
+        if remain_chances == 0 {
+            println!("You have wasted all the chances, the answer is {}", secret_word);
+            break;
+        }
+        if secret_word.len() == current.len() {
+            println!("Conguratulations! You find the correct answer!");
+            break;
+        }
+        io::stdin()
+        .read_line(&mut guess)
+        .expect("Failed to read line");
+        let letters: Vec<char>= guess.trim().chars().collect();
+        guess.clear();
+        io::stdout().flush();
+        match mut_secret_word_chars.iter().position(|&x| x == letters[0]) {
+            Some(value) => { 
+                guess_result[value] = secret_word_chars[value];
+                current.push(letters[0]);  
+                mut_secret_word_chars[value] = '#';
+            }
+            None => { 
+                println!("You may forget the letter! There is no {} in the origin word", letters[0]);
+                remain_chances -= 1;
+            }
+        }
+    }
 }
