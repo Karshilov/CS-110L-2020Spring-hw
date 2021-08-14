@@ -15,9 +15,9 @@ fn main() {
     let result = ps_utils::get_target(target);
     let opt = result.expect("Testing expect: ");
     match opt {
-        Some(value) => { println!("{} - {} - {}", value.pid, value.ppid, value.command); }
+        Some(value) => { value.print(); }
         None => {
-            println!("Process Not Found!");
+            println!("Target '{}' did not match any running PIDs or executables", target);
             std::process::exit(1);
         }
     };

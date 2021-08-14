@@ -79,7 +79,7 @@ fn get_process(pid: usize) -> Result<Option<Process>, Error> {
     // custom error type.)
     let output = String::from_utf8(
         Command::new("ps")
-            .args(&["--pid", &pid.to_string(), "-o", "pid= ppid= command="])
+            .args(&["-p", &pid.to_string(), "-o", "pid= ppid= command="])
             .output()?
             .stdout,
     )?;
