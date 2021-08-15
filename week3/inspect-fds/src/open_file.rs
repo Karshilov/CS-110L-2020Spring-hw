@@ -138,6 +138,10 @@ impl OpenFile {
     pub fn from_fd(pid: usize, fd: usize) -> Option<OpenFile> {
         let path = fs::read_link(format!("/proc/{}/fd/{}", pid, fd)).ok()?;
         let name = OpenFile::path_to_name(path.to_str()?);
+        let info = fs::read_to_string(format!("/proc/{}/fdinfo/{}", pid, fd)).ok()?;
+        let cursor = OpenFile::parse_cursor(&info.to_string())?;
+        let mode = OpenFile::parse_access_mode(&info.to_string())?;
+        Some(OpenFile::new(name, cursor, mode))
     }
 
     /// This function returns the OpenFile's name with ANSI escape codes included to colorize

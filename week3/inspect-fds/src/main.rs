@@ -13,9 +13,16 @@ fn main() {
     let target = &args[1];
 
     let result = ps_utils::get_target(target);
-    let opt = result.expect("Testing expect: ");
+    let opt = result.expect("Process expect: ");
     match opt {
-        Some(value) => { value.print(); }
+        Some(value) => { 
+            value.print(); 
+            let childs = ps_utils::get_child_processes(value.pid);
+            let res = childs.expect("Child process expect: ");
+            for i in res {
+                i.print();
+            }
+        }
         None => {
             println!("Target '{}' did not match any running PIDs or executables", target);
             std::process::exit(1);
