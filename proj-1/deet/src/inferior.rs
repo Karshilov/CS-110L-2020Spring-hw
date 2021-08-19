@@ -80,4 +80,14 @@ impl Inferior {
             Err(err) => Err(err)
         }
     }
+
+    pub fn kill(&mut self) -> Result<std::process::ExitStatus, std::io::Error> {
+        match self.child.kill() {
+            Ok(_) => {
+                let status = self.child.wait()?;
+                return Ok(status);
+            },
+            Err(err) => Err(err),
+        }
+    }
 }

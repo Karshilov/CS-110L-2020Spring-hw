@@ -28,35 +28,94 @@ impl Debugger {
         }
     }
 
+    pub fn create_inferior(&mut self, args: Vec<String>) {
+        if let Some(inferior) = Inferior::new(&self.target, &args) {
+            self.inferior = Some(inferior);
+            let inferior = self.inferior.as_mut().unwrap();
+            let res = inferior.cont_process();
+            match res {
+                Ok(value) => match value {
+                    Status::Stopped(sign, pts) => {
+                        println!("The stop-signal is {} and it has executed at {}", sign, pts);
+                    }
+                    Status::Exited(code) => {
+                        println!("The program exited with code {}", code);
+                    }
+                    Status::Signaled(sign) => {
+                        println!("The program stop by sign {}", sign);
+                    }
+                },
+                Err(err) => {
+                    println!("{}", err);
+                }
+            }
+        } else {
+            println!("Error starting subprocess");
+        }
+    }
+
     pub fn run(&mut self) {
         loop {
             match self.get_next_command() {
-                DebuggerCommand::Run(args) => {
-                    if let Some(inferior) = Inferior::new(&self.target, &args) {
-                        // Create the inferior
-                        self.inferior = Some(inferior);
-                        // TODO (milestone 1): make the inferior run
-                        // You may use self.inferior.as_mut().unwrap() to get a mutable reference
-                        // to the Inferior object
+                DebuggerCommand::Run(args) => match &mut self.inferior {
+                    Some(value) => {
+                        println!("Killing running inferior (pid {})", value.pid());
+                        match value.kill() {
+                            Ok(_) => {}
+                            Err(err) => {
+                                println!("Fail to kill the running inferior: {}", err);
+                            }
+                        }
+                        self.create_inferior(args);
+                    }
+                    None => {
+                        self.create_inferior(args);
+                    }
+                },
+                DebuggerCommand::Quit => match &mut self.inferior {
+                    Some(value) => {
+                        println!("Killing running inferior (pid {})", value.pid());
+                        match value.kill() {
+                            Ok(_) => {
+                                return;
+                            }
+                            Err(err) => {
+                                println!("Fail to kill the running inferior: {}", err);
+                            }
+                        }
+                    }
+                    None => {
+                        return;
+                    }
+                },
+                DebuggerCommand::Continue => match self.inferior {
+                    Some(_) => {
                         let inferior = self.inferior.as_mut().unwrap();
                         let res = inferior.cont_process();
                         match res {
-                            Ok(value) => {
-                                match value {
-                                    Status::Stopped(sign, pts) => { println!("The stop-signal is {} and it has executed at {}", sign, pts); }
-                                    Status::Exited(code) => { println!("The program exited with code {}", code); }
-                                    Status::Signaled(sign) => { println!("The program stop by sign {}", sign); }
+                            Ok(value) => match value {
+                                Status::Stopped(sign, pts) => {
+                                    println!(
+                                        "The stop-signal is {} and it has executed at {}",
+                                        sign, pts
+                                    );
                                 }
+                                Status::Exited(code) => {
+                                    println!("The program exited with code {}", code);
+                                }
+                                Status::Signaled(sign) => {
+                                    println!("The program stop by sign {}", sign);
+                                }
+                            },
+                            Err(err) => {
+                                println!("{}", err);
                             }
-                            Err(err) => { println!("{}", err); }
                         }
-                    } else {
-                        println!("Error starting subprocess");
                     }
-                }
-                DebuggerCommand::Quit => {
-                    return;
-                }
+                    None => {
+                        println!("ERROR! There's no program is running.");
+                    }
+                },
             }
         }
     }
