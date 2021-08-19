@@ -2,7 +2,9 @@ use nix::sys::ptrace;
 use nix::sys::signal;
 use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
 use nix::unistd::Pid;
+use std::os::unix::process::CommandExt;
 use std::process::Child;
+use std::process::Command;
 
 pub enum Status {
     /// Indicates inferior stopped. Contains the signal that stopped the process, as well as the
@@ -34,12 +36,23 @@ impl Inferior {
     /// Attempts to start a new inferior process. Returns Some(Inferior) if successful, or None if
     /// an error is encountered.
     pub fn new(target: &str, args: &Vec<String>) -> Option<Inferior> {
-        // TODO: implement me!
-        println!(
-            "Inferior::new not implemented! target={}, args={:?}",
-            target, args
-        );
-        None
+        unsafe {
+            let mut cmd: Command = Command::new(target);
+            cmd.args(args).pre_exec(|| { child_traceme() });
+            let ret = Inferior { child: cmd.spawn().ok()? };
+            let status = ret.wait(None).ok()?;
+            match status {
+                Status::Stopped(sign, pts) => {
+                    if sign == signal::Signal::SIGTRAP { return Some(ret); }
+                    else {
+                        println!("The stop-signal is {} and it has executed at {}", sign, pts);
+                        return None;
+                    }
+                }
+                Status::Exited(_) => { return None; }
+                Status::Signaled(_) => { return None; }
+            }
+        }
     }
 
     /// Returns the pid of this inferior.
@@ -59,5 +72,12 @@ impl Inferior {
             }
             other => panic!("waitpid returned unexpected status: {:?}", other),
         })
+    }
+
+    pub fn cont_process(&self) -> Result<Status, nix::Error> {
+        match ptrace::cont(self.pid(), None) {
+            Ok(_) => { return self.wait(None); }
+            Err(err) => Err(err)
+        }
     }
 }
