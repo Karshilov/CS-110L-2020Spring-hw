@@ -90,4 +90,10 @@ impl Inferior {
             Err(err) => Err(err),
         }
     }
+
+    pub fn print_backtrace(&self) -> Result<(), nix::Error> {
+        let reg = ptrace::getregs(self.pid())?;
+        println!("%rip register : {:#x}", reg.rip);
+        Ok(())
+    }
 }
